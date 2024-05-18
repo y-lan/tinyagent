@@ -6,7 +6,6 @@ from pydantic import BaseModel
 
 import requests
 
-from tinyagent.agent.schema import Message, Role
 
 
 class OpenAIChatResponse(BaseModel):

@@ -1,8 +1,6 @@
 import base64
 import json
-import logging
 import os
-import time
 import urllib
 
 from pydantic import BaseModel, ConfigDict
@@ -19,7 +17,7 @@ from tinyagent.agent.schema import (
     TokenUsage,
     Tool,
 )
-from tinyagent.agent.tools import CalculatorTool, build_function_signature
+from tinyagent.agent.tools import build_function_signature
 from tinyagent.agent.utils import replace_magic_placeholders
 
 
@@ -224,6 +222,9 @@ class GPTAgent(BaseAgent):
             seed=self.config.seed,
             stream=self.config.stream or stream,
         )
+
+        if self.config.json_output:
+            params["response_format"] = {"type": "json_object"}
 
         if params["stream"]:
             params["stream_options"] = dict(include_usage=True)

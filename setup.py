@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="tinyagent",
-    version="0.1.0",
+    version="0.1.1",
     author="y-lan",
     author_email="lanyuyang@gmail.com",
     description="A minimalistic agent framework",
