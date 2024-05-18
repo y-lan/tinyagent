@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "tinyagent"
+version = "0.1.0"
+description = ""
+authors = ["y-lan <lanyuyang@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pydantic = "^2.7.1"
+requests = "^2.31.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
