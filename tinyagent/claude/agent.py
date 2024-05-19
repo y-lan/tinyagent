@@ -6,11 +6,11 @@ import os
 from typing import Any, Union
 import urllib
 
-from tinyagent.agent.base import BaseAgent
-from tinyagent.agent.claude.client import AnthropicClient
-from tinyagent.agent.tools import build_function_signature
-from tinyagent.agent.utils import replace_magic_placeholders
-from tinyagent.agent.schema import (
+from tinyagent.base import BaseAgent
+from tinyagent.claude.client import AnthropicClient
+from tinyagent.tools import build_function_signature
+from tinyagent.utils import replace_magic_placeholders
+from tinyagent.schema import (
     BaseConfig,
     BaseContent,
     ChatResponse,
@@ -256,7 +256,7 @@ class ClaudeAgent(BaseAgent):
         if tool_result_content:
             messages.append(response.message)
             messages.append(Message(role=Role.USER, content=tool_result_content))
-            response = self._chat(messages, **params)
+            response = self._client_chat(messages, **params)
 
         response.input_message = messages[0]
         self.event_manager.publish_finish_chat(response)

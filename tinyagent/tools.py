@@ -1,7 +1,7 @@
 from typing import Type
 
 from pydantic import BaseModel, Field
-from tinyagent.agent.schema import Tool
+from tinyagent.schema import Tool
 
 
 TYPE_MAP = {

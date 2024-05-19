@@ -1,7 +1,7 @@
 from typing import Type
 from pydantic import BaseModel, Field
-from tinyagent.agent.tools import build_function_signature
-from tinyagent.agent.schema import Tool
+from tinyagent.tools import build_function_signature
+from tinyagent.schema import Tool
 
 
 class MockToolSchema(BaseModel):

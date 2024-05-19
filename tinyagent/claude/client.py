@@ -4,7 +4,7 @@ import time
 from pydantic import BaseModel
 import requests
 
-from tinyagent.agent.schema import TokenUsage
+from tinyagent.schema import TokenUsage
 
 
 class ChatStreamEvent(BaseModel):

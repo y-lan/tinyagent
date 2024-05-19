@@ -1,9 +1,9 @@
 import json
 import unittest
-from tinyagent.agent.base import BaseAgent
-from tinyagent.agent.claude.agent import ClaudeAgent
-from tinyagent.agent.schema import ChatResponse
-from tinyagent.agent.tools import CalculatorTool
+from tinyagent.base import BaseAgent
+from tinyagent.claude.agent import ClaudeAgent
+from tinyagent.schema import ChatResponse
+from tinyagent.tools import CalculatorTool
 
 
 class TestClaudeAgent(unittest.TestCase):

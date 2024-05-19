@@ -5,9 +5,9 @@ import urllib
 
 from pydantic import BaseModel, ConfigDict
 
-from tinyagent.agent.base import BaseAgent
-from tinyagent.agent.gpt.client import OpenAIChatResponse, OpenAIClient
-from tinyagent.agent.schema import (
+from tinyagent.base import BaseAgent
+from tinyagent.gpt.client import OpenAIChatResponse, OpenAIClient
+from tinyagent.schema import (
     BaseConfig,
     BaseContent,
     ChatResponse,
@@ -17,8 +17,8 @@ from tinyagent.agent.schema import (
     TokenUsage,
     Tool,
 )
-from tinyagent.agent.tools import build_function_signature
-from tinyagent.agent.utils import replace_magic_placeholders
+from tinyagent.tools import build_function_signature
+from tinyagent.utils import replace_magic_placeholders
 
 
 def _create_image_content(image_path):

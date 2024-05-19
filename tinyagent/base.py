@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import logging
 from typing import Any, Optional, Union
 
-from tinyagent.agent.schema import (
+from tinyagent.schema import (
     BaseConfig,
     ChatResponse,
     Event,
