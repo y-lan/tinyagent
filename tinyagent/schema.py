@@ -60,6 +60,13 @@ class Message(BaseModel):
     def from_text(role, text):
         return Message(role=role, content=[TextContent(text=text)])
 
+    def get_text(self):
+        if self.content:
+            for content in self.content:
+                if content.type == "text":
+                    return content.text
+        return ""
+
     model_config = ConfigDict(use_enum_values=True, arbitrary_types_allowed=True)
 
 
