@@ -28,18 +28,22 @@ class TestGPTAgent(unittest.TestCase):
 
     def test_stream(self):
         agent = self._get_agent(stream=True)
+
         stream_event_count = 0
+        stream_content = ""
 
-        def increment_count(_):
-            nonlocal stream_event_count
+        def on_new_chat_token(content):
+            nonlocal stream_event_count, stream_content
             stream_event_count += 1
+            stream_content += content
 
-        agent.on_new_chat_token(increment_count)
+        agent.on_new_chat_token(on_new_chat_token)
 
         response = agent.chat("What is 2+2?")
         assert isinstance(response, str)
         assert "4" in response
         assert stream_event_count > 0
+        self.assertEqual(response, stream_content)
 
     def test_image(self):
         agent = self._get_agent(model_name="gpt-4o")
