@@ -14,6 +14,7 @@ setup(
     author_email="lanyuyang@gmail.com",
     description="A minimalistic agent framework",
     long_description=long_description,
+    long_description_content_type='text/markdown',
     url="https://github.com/y-lan/tinyagent",
     packages=find_packages(),
     install_requires=["pydantic>=2.7.1", "requests>=2.31.0"],
