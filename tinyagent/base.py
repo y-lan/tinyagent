@@ -7,6 +7,7 @@ from tinyagent.schema import (
     ChatResponse,
     Event,
     Message,
+    Role,
     TokenUsage,
 )
 from tinyagent.common import SimpleEventManager
@@ -89,10 +90,10 @@ class BaseAgent(ABC):
         self.history.append(message)
 
     def add_ai_history(self, history_message):
-        self._add_history(self.ROLE_ASSISTANT, history_message)
+        self._add_history(Role.ASSISTANT, history_message)
 
     def add_user_history(self, history_message):
-        self._add_history(self.ROLE_USER, history_message)
+        self._add_history(Role.USER, history_message)
 
     @abstractmethod
     def _assemble_request_messages(self, user_contents):
