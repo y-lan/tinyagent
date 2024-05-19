@@ -9,7 +9,7 @@ import urllib
 from tinyagent.base import BaseAgent
 from tinyagent.claude.client import AnthropicClient
 from tinyagent.tools import build_function_signature
-from tinyagent.utils import replace_magic_placeholders
+from tinyagent.utils import get_param, replace_magic_placeholders
 from tinyagent.schema import (
     BaseConfig,
     BaseContent,
@@ -211,9 +211,7 @@ class ClaudeAgent(BaseAgent):
         user_input,
         image=None,
         return_complex=False,
-        temperature=None,
-        max_tokens=None,
-        stream=False,
+        **kwargs,
     ) -> Union[str, ChatResponse]:
         user_contents = [TextContent(text=user_input)]
         if image is not None:
@@ -223,10 +221,10 @@ class ClaudeAgent(BaseAgent):
 
         params = dict(
             model=self.config.model_name,
-            max_tokens=max_tokens or self.config.max_tokens,
-            temperature=temperature or self.config.temperature,
+            max_tokens=get_param(kwargs, "max_tokens", self.config.max_tokens),
+            temperature=get_param(kwargs, "temperature", self.config.temperature),
             system=self._get_system_msg(),
-            stream=self.config.stream or stream,
+            stream=get_param(kwargs, "stream", self.config.stream),
         )
 
         if self.config.use_tools and self.tools:

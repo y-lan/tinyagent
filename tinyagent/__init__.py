@@ -9,19 +9,18 @@ def get_agent(name, **kwargs):
 
         if name == "gpt":
             return GPTAgent(**kwargs)
-        else:
-            return GPTAgent(model_name=name, **kwargs)
+
+        return GPTAgent(model_name=name, **kwargs)
 
     elif name.startswith("claude"):
         from tinyagent.claude.agent import ClaudeAgent
 
         if name == "claude":
             return ClaudeAgent(**kwargs)
-        else:
-            return ClaudeAgent(model_name=name, **kwargs)
 
-    else:
-        raise Exception(f"Unsupported agent name: {name}")
+        return ClaudeAgent(model_name=name, **kwargs)
+
+    raise Exception(f"Unsupported agent name: {name}")
 
 
 __all__ = ["BaseAgent", "get_agent", "GPTAgent", "ClaudeAgent"]

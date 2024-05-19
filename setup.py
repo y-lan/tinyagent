@@ -1,4 +1,11 @@
+"""
+This module sets up the tinyagent package for distribution.
+"""
+
 from setuptools import setup, find_packages
+
+with open("README.md", "r", encoding="utf-8") as fh:
+    long_description = fh.read()
 
 setup(
     name="tinyagent",
@@ -6,7 +13,7 @@ setup(
     author="y-lan",
     author_email="lanyuyang@gmail.com",
     description="A minimalistic agent framework",
-    long_description=open("README.md").read(),
+    long_description=long_description,
     url="https://github.com/y-lan/tinyagent",
     packages=find_packages(),
     install_requires=["pydantic>=2.7.1", "requests>=2.31.0"],

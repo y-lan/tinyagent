@@ -6,6 +6,7 @@ from tinyagent.schema import (
     BaseConfig,
     ChatResponse,
     Event,
+    Message,
     TokenUsage,
 )
 from tinyagent.common import SimpleEventManager
@@ -82,9 +83,9 @@ class BaseAgent(ABC):
             return
 
         if isinstance(content, str):
-            message = dict(role=role, content=[dict(type="text", text=content)])
+            message = Message.from_text(role, content)
         elif isinstance(content, list):
-            message = dict(role=role, content=content)
+            message = Message(role, content)
         self.history.append(message)
 
     def add_ai_history(self, history_message):
@@ -103,8 +104,8 @@ class BaseAgent(ABC):
         image: Optional[str] = None,
         return_complex: bool = False,
         temperature: Optional[float] = None,
-        max_tokens: int = 1024,
-        stream: bool = False,
+        max_tokens: Optional[int] = None,
+        stream: Optional[bool] = None,
         **kwargs,
     ) -> Union[str, ChatResponse]:
         if kwargs:
@@ -126,8 +127,6 @@ class BaseAgent(ABC):
         user_input: str,
         image: Optional[str] = None,
         return_complex: bool = False,
-        temperature: Optional[float] = None,
-        max_tokens: int = 1024,
-        stream: bool = False,
+        **kwargs,
     ) -> Union[str, ChatResponse]:
         pass

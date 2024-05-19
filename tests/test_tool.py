@@ -5,10 +5,8 @@ from tinyagent.schema import Tool
 
 
 class MockToolSchema(BaseModel):
-    param1: str = Field(..., title="Parameter 1",
-                        description="A string parameter")
-    param2: int = Field(..., title="Parameter 2",
-                        description="An integer parameter")
+    param1: str = Field(..., title="Parameter 1", description="A string parameter")
+    param2: int = Field(..., title="Parameter 2", description="An integer parameter")
 
 
 class MockTool(Tool):
@@ -23,7 +21,7 @@ class MockTool(Tool):
 def test_build_function_signature_with_args_schema():
     test_tool = MockTool()
     signature = build_function_signature(test_tool)
-    assert signature['function']['name'] == "TestTool"
-    assert signature['function']['description'] == "A test tool"
-    assert 'properties' in signature['function']['parameters']
-    assert 'required' in signature['function']['parameters']
+    assert signature["function"]["name"] == "TestTool"
+    assert signature["function"]["description"] == "A test tool"
+    assert "properties" in signature["function"]["parameters"]
+    assert "required" in signature["function"]["parameters"]

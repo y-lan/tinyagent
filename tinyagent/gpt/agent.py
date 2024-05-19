@@ -1,3 +1,6 @@
+"""
+GPTAgent
+"""
 import base64
 import json
 import os
@@ -18,7 +21,7 @@ from tinyagent.schema import (
     Tool,
 )
 from tinyagent.tools import build_function_signature
-from tinyagent.utils import replace_magic_placeholders
+from tinyagent.utils import get_param, replace_magic_placeholders
 
 
 def _create_image_content(image_path):
@@ -26,7 +29,8 @@ def _create_image_content(image_path):
 
     if parsed.scheme in ("http", "https"):
         return ImageContent(image_url={"url": image_path})
-    elif os.path.exists(image_path):
+
+    if os.path.exists(image_path):
         with open(image_path, "rb") as image_file:
             base64_image = base64.b64encode(image_file.read()).decode("utf-8")
 
@@ -36,7 +40,7 @@ def _create_image_content(image_path):
     elif image_path.startswith("data:image/jpeg;base64,"):
         return ImageContent(image_url={"url": image_path})
     else:
-        raise Exception(f"Invalid image path: {image_path}")
+        raise ValueError(f"Invalid image path: {image_path}")
 
 
 def _parse_openai_message(msg):
@@ -48,14 +52,15 @@ def _parse_openai_message(msg):
             role=role,
             content=[TextContent(text=content)],
         )
-    elif "tool_calls" in msg:
+
+    if "tool_calls" in msg:
         return Message(
             role=role,
             content=None,
             tool_calls=[ToolUseContent(**tool) for tool in msg["tool_calls"]],
         )
-    else:
-        raise Exception(f"Unsupported content type: {msg}")
+
+    raise ValueError(f"Unsupported content type: {msg}")
 
 
 def _assemble_chat_response(raw: OpenAIChatResponse):
@@ -71,22 +76,43 @@ def _assemble_chat_response(raw: OpenAIChatResponse):
 
 
 class ImageContent(BaseContent):
+    """
+    Represents an image content block.
+    image_url is a dictionary with a single key "url" that contains the URL of the image.
+    """
+
     type: str = "image_url"
     image_url: dict
 
 
 class FunctionCall(BaseModel):
+    """
+    Represents a function call in the tool use message.
+    arguments is a JSON string representing the dictionary of arguments.
+    """
+
     name: str
     arguments: str
 
 
 class ToolUseContent(BaseContent):
+    """
+    Represents a tool use content block.
+    """
+
     type: str = "function"
     id: str
     function: FunctionCall
 
 
 class ToolUseMessage(Message):
+    """
+    Represents a tool use message.
+    tool_call_id is the ID of the tool call.
+    name is the name of the tool.
+    content is the result of the tool.
+    """
+
     model_config = ConfigDict(use_enum_values=True)
     tool_call_id: str
     name: str
@@ -94,6 +120,10 @@ class ToolUseMessage(Message):
 
 
 class AgentConfig(BaseConfig):
+    """
+    Configuration for the GPT agent.
+    """
+
     model_name: str = "gpt-3.5-turbo-0125"
     frequency_penalty: float = 0
     use_azure: bool = False
@@ -108,6 +138,10 @@ class AgentConfig(BaseConfig):
 
 
 class GPTAgent(BaseAgent):
+    """
+    GPTAgent, an agent that uses the OpenAI GPT API to chat.
+    """
+
     def __init__(
         self,
         config: AgentConfig = None,
@@ -128,8 +162,7 @@ class GPTAgent(BaseAgent):
             return Message.from_text(
                 Role.SYSTEM, replace_magic_placeholders(self.config.system_prompt)
             )
-        else:
-            return Message.from_text(Role.SYSTEM, self.config.system_prompt)
+        return Message.from_text(Role.SYSTEM, self.config.system_prompt)
 
     def _assemble_request_messages(self, user_contents):
         msgs = [self._get_system_msg()]
@@ -144,7 +177,7 @@ class GPTAgent(BaseAgent):
         choice_cache = None
         for event in stream:
             if self.config.verbose:
-                self.logger.debug(f"Stream event: {event}")
+                self.logger.debug("Stream event: %s", event)
 
             if message is None:
                 message = OpenAIChatResponse(
@@ -203,9 +236,7 @@ class GPTAgent(BaseAgent):
         user_input,
         image=None,
         return_complex=False,
-        temperature=None,
-        max_tokens=None,
-        stream=False,
+        **kwargs,
     ):
         user_contents = [TextContent(text=user_input)]
         if image is not None:
@@ -213,21 +244,21 @@ class GPTAgent(BaseAgent):
 
         messages = self._assemble_request_messages(user_contents)
 
-        params = dict(
-            model=self.config.model_name,
-            max_tokens=max_tokens or self.config.max_tokens,
-            temperature=temperature or self.config.temperature,
-            frequency_penalty=self.config.frequency_penalty,
-            top_p=self.config.top_p,
-            seed=self.config.seed,
-            stream=self.config.stream or stream,
-        )
+        params = {
+            "model": self.config.model_name,
+            "max_tokens": get_param(kwargs, "max_tokens", self.config.max_tokens),
+            "temperature": get_param(kwargs, "temperature", self.config.temperature),
+            "frequency_penalty": self.config.frequency_penalty,
+            "top_p": self.config.top_p,
+            "seed": self.config.seed,
+            "stream": get_param(kwargs, "stream", self.config.stream),
+        }
 
         if self.config.json_output:
             params["response_format"] = {"type": "json_object"}
 
         if params["stream"]:
-            params["stream_options"] = dict(include_usage=True)
+            params["stream_options"] = {"include_usage": True}
 
         if self.config.use_tools and self.tools:
             tools = [build_function_signature(tool) for tool in self.tools.values()]
@@ -238,16 +269,16 @@ class GPTAgent(BaseAgent):
 
         tool_result_content = []
         if response.message.tool_calls:
-            for i, content in enumerate(response.message.tool_calls):
+            for content in response.message.tool_calls:
                 if isinstance(content, ToolUseContent):
                     tool = self.tools[content.function.name]
                     tool_result = tool.run(**json.loads(content.function.arguments))
                     tool_result_content.append(
-                        dict(
-                            tool_call_id=content.id,
-                            name=content.function.name,
-                            content=tool_result,
-                        )
+                        {
+                            "tool_call_id": content.id,
+                            "name": content.function.name,
+                            "content": tool_result,
+                        }
                     )
 
             if tool_result_content:
