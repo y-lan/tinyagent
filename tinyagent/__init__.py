@@ -1,4 +1,6 @@
 from tinyagent.base import BaseAgent
+from tinyagent.gpt.agent import GPTAgent
+from tinyagent.claude.agent import ClaudeAgent
 
 
 def get_agent(name, **kwargs):
@@ -22,4 +24,4 @@ def get_agent(name, **kwargs):
         raise Exception(f"Unsupported agent name: {name}")
 
 
-__all__ = ["BaseAgent", "get_agent"]
+__all__ = ["BaseAgent", "get_agent", "GPTAgent", "ClaudeAgent"]
