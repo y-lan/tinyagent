@@ -1,6 +1,7 @@
 """
 GPTAgent
 """
+
 import base64
 import json
 import os
@@ -192,7 +193,9 @@ class GPTAgent(BaseAgent):
 
             if len(event.choices) > 0:
                 choice = event.choices[0]
-                if "delta" in choice:
+                if "delta" in choice and (
+                    "content" in choice["delta"] or "tool_calls" in choice["delta"]
+                ):
                     if choice_cache is None:
                         choice_cache = choice
                         choice_cache["message"] = choice.pop("delta")
@@ -210,8 +213,8 @@ class GPTAgent(BaseAgent):
                             choice_cache["message"]["tool_calls"][i]["function"][
                                 "arguments"
                             ] += func["function"]["arguments"]
-                    if choice.get("finish_reason"):
-                        choice_cache["finish_reason"] = choice["finish_reason"]
+                if choice.get("finish_reason"):
+                    choice_cache["finish_reason"] = choice["finish_reason"]
 
             if event.usage:
                 message.usage = event.usage

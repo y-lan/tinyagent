@@ -59,7 +59,8 @@ class TestGPTAgent(unittest.TestCase):
 
     def test_tool(self):
         calculator = CalculatorTool()
-        agent = self._get_agent(tools=[calculator], json_output=True)
+        agent = self._get_agent(
+            tools=[calculator], json_output=True, stream=True)
         raw = agent.chat(
             "What is 23213 * 2323? answer in json format with the key 'result'"
         )

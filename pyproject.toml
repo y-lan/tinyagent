@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tinyagent"
-version = "0.1.5"
+version = "0.1.6"
 description = ""
 authors = ["y-lan <lanyuyang@gmail.com>"]
 readme = "README.md"
