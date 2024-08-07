@@ -194,7 +194,8 @@ class GPTAgent(BaseAgent):
             if len(event.choices) > 0:
                 choice = event.choices[0]
                 if "delta" in choice and (
-                    choice["delta"].get("content") is not None or choice["delta"].get("tool_calls") is not None
+                    choice["delta"].get("content") is not None
+                    or choice["delta"].get("tool_calls") is not None
                 ):
                     if choice_cache is None:
                         choice_cache = choice
