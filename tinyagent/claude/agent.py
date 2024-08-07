@@ -135,7 +135,7 @@ class ClaudeAgent(BaseAgent):
 
         return msgs
 
-    def _handle_stream(self, stream):
+    def _handle_stream(self, stream, prefill_response=None):
         message = None
         content_block_cache = None
         for event in stream:
@@ -158,6 +158,11 @@ class ClaudeAgent(BaseAgent):
                         case "text_delta":
                             if content_block_cache is None:
                                 content_block_cache = event.payload["delta"]
+                                # hack for prefill_response, attach to the first content block
+                                if prefill_response:
+                                    content_block_cache["text"] = (
+                                        prefill_response + content_block_cache["text"]
+                                    )
                             else:
                                 content_block_cache["text"] += event.payload["delta"][
                                     "text"
@@ -195,14 +200,18 @@ class ClaudeAgent(BaseAgent):
 
         return message
 
-    def _client_chat(self, messages, **params):
+    def _client_chat(self, messages, prefill_response=None, **params):
         res = self.client.chat(messages, **params)
 
         message = None
         if params.get("stream"):
-            message = self._handle_stream(res)
+            message = self._handle_stream(res, prefill_response)
         else:
             message = res
+            if prefill_response:
+                message["content"][0]["text"] = (
+                    prefill_response + message["content"][0]["text"]
+                )
 
         return _assemble_chat_response(message)
 
@@ -211,6 +220,7 @@ class ClaudeAgent(BaseAgent):
         user_input,
         image=None,
         return_complex=False,
+        prefill_response=None,
         **kwargs,
     ) -> Union[str, ChatResponse]:
         user_contents = [TextContent(text=user_input)]
@@ -236,7 +246,23 @@ class ClaudeAgent(BaseAgent):
 
             params["tools"] = tools
 
-        response = self._client_chat(messages, **params)
+        if (
+            prefill_response is None
+            and self.config.json_output
+            and not params.get("tools")
+        ):
+            prefill_response = "{"
+
+        if prefill_response:
+            messages.append(
+                Message(
+                    role=Role.ASSISTANT, content=[TextContent(text=prefill_response)]
+                )
+            )
+
+        response = self._client_chat(
+            messages, prefill_response=prefill_response, **params
+        )
 
         tool_result_content = []
         for i, content in enumerate(response.message.content):

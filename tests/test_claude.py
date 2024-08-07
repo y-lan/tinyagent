@@ -14,6 +14,20 @@ class TestClaudeAgent(unittest.TestCase):
     def _get_agent(self, **kwargs) -> BaseAgent:
         return ClaudeAgent(**kwargs)
 
+    def _get_stream_content_collector(self, output):
+        assert output == {}
+
+        def on_new_chat_token(content):
+            if output.get("event_count") is None:
+                output["event_count"] = 0
+            output["event_count"] += 1
+
+            if output.get("content") is None:
+                output["content"] = ""
+            output["content"] += content
+
+        return on_new_chat_token
+
     def test_basic(self):
         agent = self._get_agent()
         response = agent.chat("What is 2+2?")
@@ -32,21 +46,14 @@ class TestClaudeAgent(unittest.TestCase):
 
     def test_stream(self):
         agent = self._get_agent(stream=True)
-        stream_event_count = 0
-        stream_content = ""
-
-        def on_new_chat_token(content):
-            nonlocal stream_event_count, stream_content
-            stream_event_count += 1
-            stream_content += content
-
-        agent.on_new_chat_token(on_new_chat_token)
+        stream_output = {}
+        agent.on_new_chat_token(self._get_stream_content_collector(stream_output))
 
         response = agent.chat("What is 2+2?")
         assert isinstance(response, str)
         assert "4" in response
-        assert stream_event_count > 0
-        self.assertEqual(response, stream_content)
+        assert stream_output["event_count"] > 0
+        self.assertEqual(response, stream_output["content"])
 
     def test_image(self):
         agent = self._get_agent()
@@ -64,6 +71,27 @@ class TestClaudeAgent(unittest.TestCase):
         )
         res = json.loads(raw)
         assert res["result"] == 23213 * 2323
+
+    def test_json_output(self):
+        agent = self._get_agent(
+            json_output=True,
+            system_prompt="You are a helpful assistant; you will answer in JSON format with the key 'result'",
+        )
+        response = agent.chat("What is 2+2?")
+        assert isinstance(response, str)
+        assert json.loads(response)["result"] == 4
+
+    def test_prefill_response(self):
+        agent = self._get_agent()
+        response = agent.chat("What is 2+2?", prefill_response="i think the answer is")
+        assert isinstance(response, str)
+        assert response.startswith("i think the answer is")
+
+        agent = self._get_agent(stream=True)
+        stream_output = {}
+        agent.on_new_chat_token(self._get_stream_content_collector(stream_output))
+        response = agent.chat("What is 2+2?", prefill_response="i think the answer is")
+        assert stream_output["content"].startswith("i think the answer is")
 
 
 if __name__ == "__main__":
