@@ -266,6 +266,10 @@ class GPTAgent(BaseAgent):
 
         if self.config.use_tools and self.tools:
             tools = [build_function_signature(tool) for tool in self.tools.values()]
+            for tool in tools:
+                # strict output mode for tools:
+                # https://openai.com/index/introducing-structured-outputs-in-the-api/
+                tool["function"]["strict"] = True
             params["tools"] = tools
             params["tool_choice"] = "auto"
 
