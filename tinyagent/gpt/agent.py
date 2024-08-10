@@ -193,27 +193,36 @@ class GPTAgent(BaseAgent):
 
             if len(event.choices) > 0:
                 choice = event.choices[0]
-                if "delta" in choice and (
-                    choice["delta"].get("content") is not None
-                    or choice["delta"].get("tool_calls") is not None
-                ):
+                if "delta" in choice:
                     if choice_cache is None:
                         choice_cache = choice
                         choice_cache["message"] = choice.pop("delta")
-                        if choice_cache["message"]["content"]:
+                        if choice_cache["message"].get("content"):
                             self.event_manager.publish_new_chat_token(
                                 choice_cache["message"]["content"]
                             )
                     elif "content" in choice["delta"]:
-                        choice_cache["message"]["content"] += choice["delta"]["content"]
+                        if choice_cache["message"].get("content"):
+                            choice_cache["message"]["content"] += choice["delta"][
+                                "content"
+                            ]
+                        else:
+                            choice_cache["message"]["content"] = choice["delta"][
+                                "content"
+                            ]
                         self.event_manager.publish_new_chat_token(
                             choice["delta"]["content"]
                         )
                     elif "tool_calls" in choice["delta"]:
-                        for i, func in enumerate(choice["delta"]["tool_calls"]):
-                            choice_cache["message"]["tool_calls"][i]["function"][
-                                "arguments"
-                            ] += func["function"]["arguments"]
+                        if choice_cache["message"].get("tool_calls"):
+                            for i, func in enumerate(choice["delta"]["tool_calls"]):
+                                choice_cache["message"]["tool_calls"][i]["function"][
+                                    "arguments"
+                                ] += func["function"]["arguments"]
+                        else:
+                            choice_cache["message"]["tool_calls"] = choice["delta"][
+                                "tool_calls"
+                            ]
                 if choice.get("finish_reason"):
                     choice_cache["finish_reason"] = choice["finish_reason"]
 
@@ -266,10 +275,6 @@ class GPTAgent(BaseAgent):
 
         if self.config.use_tools and self.tools:
             tools = [build_function_signature(tool) for tool in self.tools.values()]
-            for tool in tools:
-                # strict output mode for tools:
-                # https://openai.com/index/introducing-structured-outputs-in-the-api/
-                tool["function"]["strict"] = True
             params["tools"] = tools
             params["tool_choice"] = "auto"
 

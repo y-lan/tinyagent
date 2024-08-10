@@ -1,3 +1,4 @@
+import copy
 import json
 import os
 import time
@@ -6,6 +7,19 @@ from pydantic import BaseModel
 
 import requests
 
+from tinyagent.schema import Message, Role
+
+
+def ensure_type_strict_tool_calling(original_tools):
+    tools = []
+    for t in original_tools:
+        # strict output mode for tools:
+        # https://openai.com/index/introducing-structured-outputs-in-the-api/
+        tool = t.copy()
+        tool["function"]["strict"] = True
+        tool["function"]["parameters"]["additionalProperties"] = False
+        tools.append(tool)
+    return tools
 
 
 class OpenAIChatResponse(BaseModel):
@@ -68,11 +82,16 @@ class OpenAIClient:
                     f"OpenAI API request failed with status code {response.status_code} {response.text}"
                 )
 
-    def chat(self, messages, **kwargs) -> dict:
+    def chat(self, messages: list[Message], **kwargs) -> dict:
+        params = copy.deepcopy(kwargs)
+        if messages[-1].role == Role.USER.value and "tools" in params:
+            params["tools"] = ensure_type_strict_tool_calling(params["tools"])
+
         data = {
             "messages": [msg.model_dump(exclude_none=True) for msg in messages],
-            **kwargs,
+            **params,
         }
+
         return self.api_request(
             "/v1/chat/completions",
             data,
