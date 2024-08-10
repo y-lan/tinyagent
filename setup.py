@@ -9,12 +9,12 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="tinyagent",
-    version="0.1.8",
+    version="0.1.9",
     author="y-lan",
     author_email="lanyuyang@gmail.com",
     description="A minimalistic agent framework",
     long_description=long_description,
-    long_description_content_type='text/markdown',
+    long_description_content_type="text/markdown",
     url="https://github.com/y-lan/tinyagent",
     packages=find_packages(),
     install_requires=["pydantic>=2.7.1", "requests>=2.31.0"],

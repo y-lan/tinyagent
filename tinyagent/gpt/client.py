@@ -16,8 +16,15 @@ def ensure_type_strict_tool_calling(original_tools):
         # strict output mode for tools:
         # https://openai.com/index/introducing-structured-outputs-in-the-api/
         tool = t.copy()
-        tool["function"]["strict"] = True
-        tool["function"]["parameters"]["additionalProperties"] = False
+
+        has_optional_param = any(
+            "default" in p
+            for p in tool["function"]["parameters"]["properties"].values()
+        )
+        if not has_optional_param:
+            tool["function"]["strict"] = True
+            tool["function"]["parameters"]["additionalProperties"] = False
+
         tools.append(tool)
     return tools
 

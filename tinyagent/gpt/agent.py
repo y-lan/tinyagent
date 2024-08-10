@@ -125,7 +125,7 @@ class AgentConfig(BaseConfig):
     Configuration for the GPT agent.
     """
 
-    model_name: str = "gpt-3.5-turbo-0125"
+    model_name: str = "gpt-4o-mini-2024-07-18"
     frequency_penalty: float = 0
     use_azure: bool = False
     azure_endpoint: str = None
@@ -308,7 +308,7 @@ class GPTAgent(BaseAgent):
                 response = self._client_chat(messages, **params)
 
         response.input_message = (
-            messages[1] if messages[0].role == Role.SYSTEM else messages[0]
+            messages[1] if messages[0].role == Role.SYSTEM.value else messages[0]
         )
         self.event_manager.publish_finish_chat(response)
 

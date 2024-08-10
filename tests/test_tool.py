@@ -1,6 +1,9 @@
 from typing import Type
 from pydantic import BaseModel, Field
-from tinyagent.tools import build_function_signature
+from tinyagent.tools import (
+    TavilySearchTool,
+    build_function_signature,
+)
 from tinyagent.schema import Tool
 
 
@@ -25,3 +28,9 @@ def test_build_function_signature_with_args_schema():
     assert signature["function"]["description"] == "A test tool"
     assert "properties" in signature["function"]["parameters"]
     assert "required" in signature["function"]["parameters"]
+
+
+def test_tavily_search_tool():
+    searcher = TavilySearchTool()
+    result = searcher._run("the president of the United States?", limit=1)
+    assert len(result) > 0

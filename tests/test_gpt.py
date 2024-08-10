@@ -4,10 +4,11 @@ Unit tests for the GPTAgent class from the tinyagent.gpt module.
 
 import json
 import unittest
+
 from tinyagent.base import BaseAgent
 from tinyagent.gpt.agent import GPTAgent
 from tinyagent.schema import ChatResponse
-from tinyagent.tools import CalculatorTool
+from tinyagent.tools import CalculatorTool, TavilySearchTool
 
 
 class TestGPTAgent(unittest.TestCase):
@@ -22,7 +23,7 @@ class TestGPTAgent(unittest.TestCase):
 
         response = agent.chat("What is 2+2?", return_complex=True)
         assert isinstance(response, ChatResponse)
-        assert response.model == "gpt-3.5-turbo-0125"
+        assert response.model == "gpt-4o-mini-2024-07-18"
 
     def test_history(self):
         agent = self._get_agent(enable_history=True)
@@ -57,15 +58,20 @@ class TestGPTAgent(unittest.TestCase):
         assert isinstance(response, str)
         assert "tiny" in response
 
-    def test_tool(self):
+    def test_calculator(self):
         calculator = CalculatorTool()
-        agent = self._get_agent(
-            tools=[calculator], json_output=True, stream=True)
+        agent = self._get_agent(tools=[calculator], json_output=True, stream=True)
         raw = agent.chat(
             "What is 23213 * 2323? answer in json format with the key 'result'"
         )
         res = json.loads(raw)
         assert res["result"] == 23213 * 2323
+
+    def test_searcher(self):
+        searcher = TavilySearchTool()
+        agent = self._get_agent(tools=[searcher], stream=True)
+        raw = agent.chat("Who is the Mayor of Meguro-ku, Tokyo in 2023?")
+        assert "Eiji Aoki" in raw
 
 
 if __name__ == "__main__":
