@@ -5,6 +5,7 @@ GPTAgent
 import base64
 import json
 import os
+from typing import Optional, Type
 import urllib
 
 from pydantic import BaseModel, ConfigDict
@@ -129,6 +130,7 @@ class AgentConfig(BaseConfig):
     frequency_penalty: float = 0
     use_azure: bool = False
     azure_endpoint: str = None
+    response_format: Optional[Type[BaseModel]] = None
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -268,7 +270,17 @@ class GPTAgent(BaseAgent):
         }
 
         if self.config.json_output:
-            params["response_format"] = {"type": "json_object"}
+            if self.config.response_format:
+                params["response_format"] = {
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "math_response",
+                        "strict": True,
+                        "schema": self.config.response_format.model_json_schema(),
+                    },
+                }
+            else:
+                params["response_format"] = {"type": "json_object"}
 
         if params["stream"]:
             params["stream_options"] = {"include_usage": True}

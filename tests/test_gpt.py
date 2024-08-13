@@ -3,7 +3,10 @@ Unit tests for the GPTAgent class from the tinyagent.gpt module.
 """
 
 import json
+from typing import List
 import unittest
+
+from pydantic import BaseModel, ConfigDict
 
 from tinyagent.base import BaseAgent
 from tinyagent.gpt.agent import GPTAgent
@@ -72,6 +75,27 @@ class TestGPTAgent(unittest.TestCase):
         agent = self._get_agent(tools=[searcher], stream=True)
         raw = agent.chat("Who is the Mayor of Meguro-ku, Tokyo in 2023?")
         assert "Eiji Aoki" in raw
+
+    def test_structured_response(self):
+        class Step(BaseModel):
+            explanation: str
+            output: str
+
+            model_config = ConfigDict(json_schema_extra={"additionalProperties": False})
+
+        class MathResponse(BaseModel):
+            steps: List[Step]
+            final_answer: str
+            model_config = ConfigDict(json_schema_extra={"additionalProperties": False})
+
+        agent = self._get_agent(
+            system_prompt="You are a helpful math tutor.",
+            json_output=True,
+            response_format=MathResponse,
+        )
+        res = MathResponse.model_validate(agent.chat("solve 8x + 31 = 2"))
+
+        assert "-3.625" in res.final_answer
 
 
 if __name__ == "__main__":
