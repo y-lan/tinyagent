@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tinyagent"
-version = "0.1.10"
+version = "0.1.11"
 description = ""
 authors = ["y-lan <lanyuyang@gmail.com>"]
 readme = "README.md"
@@ -10,6 +10,7 @@ python = "^3.10"
 pydantic = "^2.7.1"
 requests = "^2.31.0"
 python-dotenv = "^1.0.1"
+fire = "^0.6.0"
 
 
 [tool.poetry.group.dev.dependencies]

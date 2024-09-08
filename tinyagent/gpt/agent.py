@@ -217,10 +217,14 @@ class GPTAgent(BaseAgent):
                         )
                     elif "tool_calls" in choice["delta"]:
                         if choice_cache["message"].get("tool_calls"):
-                            for i, func in enumerate(choice["delta"]["tool_calls"]):
-                                choice_cache["message"]["tool_calls"][i]["function"][
-                                    "arguments"
-                                ] += func["function"]["arguments"]
+                            for func in choice["delta"]["tool_calls"]:
+                                idx = func["index"]
+                                if idx < len(choice_cache["message"]["tool_calls"]):
+                                    choice_cache["message"]["tool_calls"][idx][
+                                        "function"
+                                    ]["arguments"] += func["function"]["arguments"]
+                                else:
+                                    choice_cache["message"]["tool_calls"].append(func)
                         else:
                             choice_cache["message"]["tool_calls"] = choice["delta"][
                                 "tool_calls"
@@ -299,9 +303,12 @@ class GPTAgent(BaseAgent):
                     tool = self.tools[content.function.name]
                     try:
                         args = json.loads(content.function.arguments)
+                        self.logger.info(f"Running tool: {tool.name} with args: {args}")
                         tool_result = tool.run(**args)
                     except json.JSONDecodeError:
-                        self.logger.error(f"Invalid JSON in tool arguments: {content.function.arguments}")
+                        self.logger.error(
+                            f"Invalid JSON in tool arguments: {content.function.arguments}"
+                        )
                         tool_result = f"Error: Invalid JSON in tool arguments: {content.function.arguments}"
                     tool_result_content.append(
                         {

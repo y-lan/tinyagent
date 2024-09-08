@@ -49,12 +49,14 @@ class BaseAgent(ABC):
 
         if logger is None:
             logger = logging.getLogger(__name__)
-            console_handler = logging.StreamHandler()
-            formatter = logging.Formatter(
-                "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-            )
-            console_handler.setFormatter(formatter)
-            logger.addHandler(console_handler)
+            if not logger.handlers:
+                console_handler = logging.StreamHandler()
+                formatter = logging.Formatter(
+                    "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+                )
+                console_handler.setFormatter(formatter)
+                logger.addHandler(console_handler)
+                logger.propagate = False
         self.logger = logger
         if config.verbose:
             self.logger.setLevel(logging.DEBUG)
