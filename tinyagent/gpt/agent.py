@@ -297,7 +297,12 @@ class GPTAgent(BaseAgent):
             for content in response.message.tool_calls:
                 if isinstance(content, ToolUseContent):
                     tool = self.tools[content.function.name]
-                    tool_result = tool.run(**json.loads(content.function.arguments))
+                    try:
+                        args = json.loads(content.function.arguments)
+                        tool_result = tool.run(**args)
+                    except json.JSONDecodeError:
+                        self.logger.error(f"Invalid JSON in tool arguments: {content.function.arguments}")
+                        tool_result = f"Error: Invalid JSON in tool arguments: {content.function.arguments}"
                     tool_result_content.append(
                         {
                             "tool_call_id": content.id,
