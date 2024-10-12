@@ -3,8 +3,8 @@ from tinyagent.gpt.agent import GPTAgent
 from tinyagent.claude.agent import ClaudeAgent
 
 
-def get_agent(name, **kwargs):
-    if name.startswith("gpt"):
+def get_agent(name, provider=None, **kwargs):
+    if provider == "openai" or name.startswith("gpt") or name.startswith("o1"):
         from tinyagent.gpt.agent import GPTAgent
 
         if name == "gpt":
@@ -12,7 +12,7 @@ def get_agent(name, **kwargs):
 
         return GPTAgent(model_name=name, **kwargs)
 
-    elif name.startswith("claude"):
+    elif provider == "anthropic" or name.startswith("claude"):
         from tinyagent.claude.agent import ClaudeAgent
 
         if name == "claude":
