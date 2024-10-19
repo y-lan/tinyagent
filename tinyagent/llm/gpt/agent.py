@@ -11,8 +11,8 @@ import urllib
 from pydantic import BaseModel, ConfigDict
 
 from tinyagent.base import BaseAgent
-from tinyagent.gpt.client import OpenAIChatResponse, OpenAIClient
-from tinyagent.gpt.schema import ImageContent, ToolUseContent, ToolUseMessage
+from tinyagent.llm.gpt.client import OpenAIChatResponse, OpenAIClient
+from tinyagent.llm.gpt.schema import ImageContent, ToolUseContent, ToolUseMessage
 from tinyagent.schema import (
     BaseConfig,
     ChatResponse,
@@ -22,7 +22,7 @@ from tinyagent.schema import (
     TokenUsage,
     Tool,
 )
-from tinyagent.tools import build_function_signature
+from tinyagent.tools.tool import build_function_signature
 from tinyagent.utils import get_param, replace_magic_placeholders
 
 

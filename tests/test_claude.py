@@ -5,9 +5,9 @@ Unit tests for the ClaudeAgent class from the tinyagent.claude module.
 import json
 import unittest
 from tinyagent.base import BaseAgent
-from tinyagent.claude.agent import ClaudeAgent
+from tinyagent.llm.claude.agent import ClaudeAgent
 from tinyagent.schema import ChatResponse
-from tinyagent.tools import CalculatorTool
+from tinyagent.tools.calculator import CalculatorTool
 
 
 class TestClaudeAgent(unittest.TestCase):

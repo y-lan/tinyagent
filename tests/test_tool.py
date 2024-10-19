@@ -1,7 +1,7 @@
 from typing import Type
 from pydantic import BaseModel, Field
-from tinyagent.tools import (
-    TavilySearchTool,
+from tinyagent.tools.tavily import TavilySearchTool
+from tinyagent.tools.tool import (
     build_function_signature,
 )
 from tinyagent.schema import Tool

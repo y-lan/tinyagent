@@ -2,13 +2,13 @@ import json
 from typing import Any, List, Union
 
 from tinyagent.base import BaseAgent
-from tinyagent.claude.client import AnthropicClient
-from tinyagent.claude.schema import (
+from tinyagent.llm.claude.client import AnthropicClient
+from tinyagent.llm.claude.schema import (
     ClaudeImageContent,
     ToolResultContent,
     ToolUseContent,
 )
-from tinyagent.tools import build_function_signature
+from tinyagent.tools.tool import build_function_signature
 from tinyagent.utils import (
     convert_image_to_base64_uri,
     get_param,
@@ -176,7 +176,27 @@ class ClaudeAgent(BaseAgent):
                     prefill_response + message["content"][0]["text"]
                 )
 
-        return _assemble_chat_response(message)
+        response = _assemble_chat_response(message)
+
+        tool_result_content = []
+        for i, content in enumerate(response.message.content):
+            if isinstance(content, ToolUseContent):
+                tool = self.tools[content.name]
+                self.event_manager.publish_use_tool(content.name, content.input)
+                self.logger.debug(
+                    f"Using tool: {content.name} with input: {content.input}"
+                )
+                tool_response = tool.run(**content.input)
+                tool_result_content.append(
+                    ToolResultContent(tool_use_id=content.id, content=tool_response)
+                )
+
+        if tool_result_content:
+            messages.append(response.message)
+            messages.append(Message(role=Role.USER, content=tool_result_content))
+            return self._client_chat(messages, **params)
+
+        return response
 
     def _chat(
         self,
@@ -222,24 +242,6 @@ class ClaudeAgent(BaseAgent):
         response = self._client_chat(
             messages, prefill_response=prefill_response, **params
         )
-
-        tool_result_content = []
-        for i, content in enumerate(response.message.content):
-            if isinstance(content, ToolUseContent):
-                tool = self.tools[content.name]
-                self.event_manager.publish_use_tool(content.name, content.input)
-                self.logger.debug(
-                    f"Using tool: {content.name} with input: {content.input}"
-                )
-                tool_response = tool.run(**content.input)
-                tool_result_content.append(
-                    ToolResultContent(tool_use_id=content.id, content=tool_response)
-                )
-
-        if tool_result_content:
-            messages.append(response.message)
-            messages.append(Message(role=Role.USER, content=tool_result_content))
-            response = self._client_chat(messages, **params)
 
         response.input_message = messages[0]
         self.event_manager.publish_finish_chat(response)

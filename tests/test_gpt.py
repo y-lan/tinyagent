@@ -1,5 +1,5 @@
 """
-Unit tests for the GPTAgent class from the tinyagent.gpt module.
+Unit tests for the GPTAgent class from the tinyagent.llm.gpt module.
 """
 
 import json
@@ -9,9 +9,10 @@ import unittest
 from pydantic import BaseModel, ConfigDict
 
 from tinyagent.base import BaseAgent
-from tinyagent.gpt.agent import GPTAgent
+from tinyagent.llm.gpt.agent import GPTAgent
 from tinyagent.schema import ChatResponse
-from tinyagent.tools import CalculatorTool, TavilySearchTool
+from tinyagent.tools.calculator import CalculatorTool
+from tinyagent.tools.tavily import TavilySearchTool
 
 
 class TestGPTAgent(unittest.TestCase):
