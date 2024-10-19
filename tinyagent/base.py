@@ -128,9 +128,21 @@ class BaseAgent(ABC):
     def add_user_history(self, history_message):
         self._add_history(Role.USER, history_message)
 
-    @abstractmethod
-    def _assemble_request_messages(self, user_contents):
-        pass
+    def _assemble_request_messages(
+        self, messages: List[Message], include_system: bool = True
+    ):
+        msgs = []
+        if include_system:
+            system_msg = self._get_system_msg()
+            if system_msg:
+                msgs.append(Message.from_text(Role.SYSTEM, system_msg))
+
+        if self.config.enable_history:
+            msgs.extend(self.history)
+
+        msgs.extend(messages)
+
+        return msgs
 
     def chat(
         self,

@@ -117,19 +117,6 @@ class GPTAgent(BaseAgent):
 
         self.client = OpenAIClient(api_key=api_key)
 
-    def _assemble_request_messages(self, messages: List[Message]):
-        msgs = []
-        system_msg = self._get_system_msg()
-        if system_msg:
-            msgs.append(Message.from_text(Role.SYSTEM, system_msg))
-
-        if self.config.enable_history:
-            msgs.extend(self.history)
-
-        msgs.extend(messages)
-
-        return msgs
-
     def _handle_stream(self, stream):
         message = None
         choice_cache = None

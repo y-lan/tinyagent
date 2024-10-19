@@ -85,11 +85,7 @@ class ClaudeAgent(BaseAgent):
         self.client = AnthropicClient(api_key=api_key)
 
     def _assemble_request_messages(self, messages: List[Message]):
-        msgs = []
-        if self.config.enable_history:
-            msgs.extend(self.history)
-        msgs.extend(messages)
-        return msgs
+        return super()._assemble_request_messages(messages, include_system=False)
 
     def _handle_stream(self, stream, prefill_response=None):
         message = None
