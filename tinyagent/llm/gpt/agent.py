@@ -18,7 +18,7 @@ from tinyagent.schema import (
     TokenUsage,
     Tool,
     ToolUseContent,
-    ToolUseMessage,
+    ToolUseResultMessage,
 )
 from tinyagent.tools.tool import build_function_signature
 from tinyagent.utils import get_param
@@ -198,8 +198,7 @@ class GPTAgent(BaseAgent):
                 messages.append(response.message)
                 for content in tool_result_content:
                     messages.append(
-                        ToolUseMessage(
-                            role=Role.TOOL,
+                        ToolUseResultMessage(
                             tool_call_id=content["tool_call_id"],
                             name=content["name"],
                             content=content["content"],
@@ -222,8 +221,8 @@ class GPTAgent(BaseAgent):
                 kwargs, ["max_tokens", "max_completion_tokens"], self.config.max_tokens
             ),
             "temperature": get_param(kwargs, "temperature", self.config.temperature),
+            "top_p": get_param(kwargs, "top_p", self.config.top_p),
             "frequency_penalty": self.config.frequency_penalty,
-            "top_p": self.config.top_p,
             "seed": self.config.seed,
             "stream": get_param(kwargs, "stream", self.config.stream),
         }

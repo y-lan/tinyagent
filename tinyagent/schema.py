@@ -12,7 +12,7 @@ class BaseConfig(BaseModel):
     system_prompt: str = "You are a helpful assistant"
 
     # LLM
-    temperature: float = 0
+    temperature: float = 0.1
     top_p: float = 1
     seed: int = None
     max_tokens: int = 1024
@@ -111,15 +111,9 @@ class Message(BaseModel):
     model_config = ConfigDict(use_enum_values=True, arbitrary_types_allowed=True)
 
 
-class ToolUseMessage(Message):
-    """
-    Represents a tool use message.
-    tool_call_id is the ID of the tool call.
-    name is the name of the tool.
-    content is the result of the tool.
-    """
-
+class ToolUseResultMessage(Message):
     model_config = ConfigDict(use_enum_values=True)
+    role: Role = Role.TOOL.value
     tool_call_id: str
     name: str
     content: str

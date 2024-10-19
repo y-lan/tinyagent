@@ -9,7 +9,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="tinyagent",
-    version="0.1.13",
+    version="0.2.0",
     author="y-lan",
     author_email="lanyuyang@gmail.com",
     description="A minimalistic agent framework",

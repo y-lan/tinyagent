@@ -8,9 +8,6 @@ from tinyagent.schema import Tool
 
 class TavilySearchSchema(BaseModel):
     query: str = Field(..., description="The query to search")
-    limit: Optional[int] = Field(
-        10, description="The maximum number of results to return"
-    )
 
 
 class TavilySearchTool(Tool):

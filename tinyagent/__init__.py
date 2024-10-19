@@ -20,7 +20,15 @@ def get_agent(name, provider=None, **kwargs):
 
         return ClaudeAgent(model_name=name, **kwargs)
 
+    elif provider == "gemini":
+        from tinyagent.llm.gemini.agent import GeminiAgent
+
+        if name == "gemini":
+            return GeminiAgent(**kwargs)
+
+        return GeminiAgent(model_name=name, **kwargs)
+
     raise Exception(f"Unsupported agent name: {name}")
 
 
-__all__ = ["BaseAgent", "get_agent", "GPTAgent", "ClaudeAgent"]
+__all__ = ["BaseAgent", "get_agent", "GPTAgent", "ClaudeAgent", "GeminiAgent"]

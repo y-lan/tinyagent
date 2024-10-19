@@ -1,20 +1,21 @@
 """
-Unit tests for the ClaudeAgent class from the tinyagent.llm.claude module.
+Unit tests for the GeminiAgent class from the tinyagent.llm.gemini module.
 """
 
 import json
 import unittest
 from tinyagent.base import BaseAgent
-from tinyagent.llm.claude.agent import ClaudeAgent
+from tinyagent.llm.gemini.agent import GeminiAgent
+from tinyagent.llm.gemini.schema import GeminiToolMode
 from tinyagent.schema import ChatResponse
 from tinyagent.tools.calculator import CalculatorTool
 from tinyagent.tools.current_time import CurrentTimeTool
 from tinyagent.tools.tavily import TavilySearchTool
 
 
-class TestClaudeAgent(unittest.TestCase):
+class TestGeminiAgent(unittest.TestCase):
     def _get_agent(self, **kwargs) -> BaseAgent:
-        return ClaudeAgent(**kwargs)
+        return GeminiAgent(**kwargs)
 
     def _get_stream_content_collector(self, output):
         assert output == {}
@@ -38,7 +39,7 @@ class TestClaudeAgent(unittest.TestCase):
 
         response = agent.chat("What is 2+2?", return_complex=True)
         assert isinstance(response, ChatResponse)
-        assert response.model == "claude-3-haiku-20240307"
+        assert response.model == "gemini-1.5-flash-latest"
 
     def test_history(self):
         agent = self._get_agent(enable_history=True)
@@ -69,8 +70,13 @@ class TestClaudeAgent(unittest.TestCase):
         calculator = CalculatorTool()
         agent = self._get_agent(tools=[calculator], json_output=True)
         raw = agent.chat(
-            "What is 23213 * 2323? answer in json format with the key 'result'"
+            "What is 23213 * 2323? "
+            "Answer in JSON format with the key 'result' and the int value as the result of the calculation. "
+            "Return the JSON payload only, without any other text or JSON code block markers.",
+            tool_mode=GeminiToolMode.ANY,
         )
+        if raw.startswith("```json"):
+            raw = raw.lstrip("```json").rstrip("```").strip()
         res = json.loads(raw)
         assert res["result"] == 23213 * 2323
 
@@ -78,9 +84,10 @@ class TestClaudeAgent(unittest.TestCase):
         current_time = CurrentTimeTool()
         searcher = TavilySearchTool()
         agent = self._get_agent(
-            model_name="claude-3-5-sonnet-20240620",
+            model_name="gemini-1.5-pro-latest",
             tools=[current_time, searcher],
             stream=True,
+            temperature=0.0,
         )
         tool_call_count = 0
 
@@ -89,30 +96,21 @@ class TestClaudeAgent(unittest.TestCase):
             tool_call_count += 1
 
         agent.on_tool_call(on_tool_call)
-        raw = agent.chat("search the temperature in Tokyo today?")
+        raw = agent.chat(
+            "Use a tool to find today's date, then use another tool to search for the temperature in Tokyo today",
+            tool_mode=GeminiToolMode.ANY,
+        )
         assert len(raw) > 0
         assert tool_call_count == 2
 
     def test_json_output(self):
         agent = self._get_agent(
             json_output=True,
-            system_prompt="You are a helpful assistant; you will answer in JSON format with the key 'result'",
+            system_prompt="You are a helpful assistant; you will answer in JSON format with the key 'result' and the int value as the result of the calculation",
         )
         response = agent.chat("What is 2+2?")
         assert isinstance(response, str)
         assert json.loads(response)["result"] == 4
-
-    def test_prefill_response(self):
-        agent = self._get_agent()
-        response = agent.chat("What is 2+2?", prefill_response="i think the answer is")
-        assert isinstance(response, str)
-        assert response.startswith("i think the answer is")
-
-        agent = self._get_agent(stream=True)
-        stream_output = {}
-        agent.on_new_chat_token(self._get_stream_content_collector(stream_output))
-        response = agent.chat("What is 2+2?", prefill_response="i think the answer is")
-        assert stream_output["content"].startswith("i think the answer is")
 
 
 if __name__ == "__main__":
