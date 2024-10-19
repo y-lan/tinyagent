@@ -10,7 +10,6 @@ from tinyagent.llm.claude.schema import (
 )
 from tinyagent.tools.tool import build_function_signature
 from tinyagent.utils import (
-    convert_image_to_base64_uri,
     get_param,
     replace_magic_placeholders,
 )
@@ -181,14 +180,9 @@ class ClaudeAgent(BaseAgent):
         tool_result_content = []
         for i, content in enumerate(response.message.content):
             if isinstance(content, ToolUseContent):
-                tool = self.tools[content.name]
-                self.event_manager.publish_use_tool(content.name, content.input)
-                self.logger.debug(
-                    f"Using tool: {content.name} with input: {content.input}"
-                )
-                tool_response = tool.run(**content.input)
+                tool_result = self.run_tool(content.name, content.input)
                 tool_result_content.append(
-                    ToolResultContent(tool_use_id=content.id, content=tool_response)
+                    ToolResultContent(tool_use_id=content.id, content=tool_result)
                 )
 
         if tool_result_content:

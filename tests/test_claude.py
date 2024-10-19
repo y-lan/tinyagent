@@ -8,6 +8,8 @@ from tinyagent.base import BaseAgent
 from tinyagent.llm.claude.agent import ClaudeAgent
 from tinyagent.schema import ChatResponse
 from tinyagent.tools.calculator import CalculatorTool
+from tinyagent.tools.current_time import CurrentTimeTool
+from tinyagent.tools.tavily import TavilySearchTool
 
 
 class TestClaudeAgent(unittest.TestCase):
@@ -71,6 +73,25 @@ class TestClaudeAgent(unittest.TestCase):
         )
         res = json.loads(raw)
         assert res["result"] == 23213 * 2323
+
+    def test_multiple_tool(self):
+        current_time = CurrentTimeTool()
+        searcher = TavilySearchTool()
+        agent = self._get_agent(
+            model_name="claude-3-5-sonnet-20240620",
+            tools=[current_time, searcher],
+            stream=True,
+        )
+        tool_call_count = 0
+
+        def on_tool_call(name, args):
+            nonlocal tool_call_count
+            tool_call_count += 1
+
+        agent.on_tool_call(on_tool_call)
+        raw = agent.chat("search the temperature in Tokyo today?")
+        assert len(raw) > 0
+        assert tool_call_count == 2
 
     def test_json_output(self):
         agent = self._get_agent(

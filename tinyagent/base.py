@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import json
 import logging
 from typing import Any, List, Optional, Union
 
@@ -16,6 +17,11 @@ from tinyagent.common import SimpleEventManager
 class LLMEventManager(SimpleEventManager):
     def on_new_chat_token(self, callback):
         self.subscribe(Event.NEW_CHAT_TOKEN, lambda data: callback(data["content"]))
+
+    def on_tool_call(self, callback):
+        self.subscribe(
+            Event.USE_TOOL, lambda data: callback(data["tool_name"], data["args"])
+        )
 
     def publish_new_chat_token(self, content: str):
         self.publish(Event.NEW_CHAT_TOKEN, content=content)
@@ -78,8 +84,24 @@ class BaseAgent(ABC):
             )
         self.event_manager.on_new_chat_token(callback)
 
+    def on_tool_call(self, callback):
+        self.event_manager.on_tool_call(callback)
+
     def on_finish_chat(self, callback):
         self.event_manager.on_finish_chat(callback)
+
+    def run_tool(self, tool_name: str, args: dict):
+        self.logger.info(f"Running tool: {tool_name} with args: {args}")
+        self.event_manager.publish_use_tool(tool_name, args)
+        tool = self.tools[tool_name]
+        try:
+            tool_result = tool.run(**args)
+        except Exception as e:
+            self.logger.error(
+                f"Error running tool: {tool_name} with args: {args}", exc_info=e
+            )
+            tool_result = f"Error: {e}"
+        return tool_result
 
     def _add_history(self, role, content):
         if not self.config.enable_history:

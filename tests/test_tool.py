@@ -1,10 +1,12 @@
 from typing import Type
 from pydantic import BaseModel, Field
+from tinyagent.tools.current_time import CurrentTimeTool
 from tinyagent.tools.tavily import TavilySearchTool
 from tinyagent.tools.tool import (
     build_function_signature,
 )
 from tinyagent.schema import Tool
+from datetime import datetime as dt
 
 
 class MockToolSchema(BaseModel):
@@ -34,3 +36,29 @@ def test_tavily_search_tool():
     searcher = TavilySearchTool()
     result = searcher._run("the president of the United States?", limit=1)
     assert len(result) > 0
+
+
+def test_current_time_tool():
+    current_time = CurrentTimeTool()
+    result1 = current_time._run(timezone="Asia/Tokyo")
+    result2 = current_time._run()
+    result3 = current_time._run(timezone="America/New_York")
+
+    # Helper function to parse datetime and timezone
+    def parse_datetime_with_tz(dt_string):
+        dt_part, tz_part = dt_string.rsplit(" ", 1)
+        parsed_dt = dt.strptime(dt_part, "%Y-%m-%d %H:%M:%S")
+        return parsed_dt, tz_part
+
+    # Parse results
+    dt1, tz1 = parse_datetime_with_tz(result1)
+    dt2, tz2 = parse_datetime_with_tz(result2)
+    dt3, tz3 = parse_datetime_with_tz(result3)
+
+    # Assert that Tokyo time is ahead of UTC, which is ahead of New York time
+    assert dt1 > dt2 > dt3, "Time order is incorrect"
+
+    # Additional assertions to check if the timezones are correct
+    assert tz1 == "JST", "Tokyo timezone not found in result1"
+    assert tz2 == "UTC", "UTC timezone not found in result2"
+    assert tz3 in ["EDT", "EST"], "New York timezone not found in result3"
