@@ -1,13 +1,9 @@
-from ast import Dict, List
-import json
 import os
 from typing import Optional, Type
 
 from pydantic import BaseModel, Field, PrivateAttr
 import requests
 from tinyagent.schema import Tool
-import urllib.parse
-import urllib.request
 
 
 TYPE_MAP = {

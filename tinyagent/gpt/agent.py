@@ -56,11 +56,12 @@ def _parse_openai_message(msg):
         )
 
     if "tool_calls" in msg:
-        return Message(
+        message = Message(
             role=role,
             content=None,
             tool_calls=[ToolUseContent(**tool) for tool in msg["tool_calls"]],
         )
+        return message
 
     raise ValueError(f"Unsupported content type: {msg}")
 
@@ -102,6 +103,7 @@ class ToolUseContent(BaseContent):
     Represents a tool use content block.
     """
 
+    index: int
     type: str = "function"
     id: str
     function: FunctionCall
@@ -257,6 +259,46 @@ class GPTAgent(BaseAgent):
 
         return _assemble_chat_response(message)
 
+    def _process_chat(self, messages, **params):
+        response = self._client_chat(messages, **params)
+
+        tool_result_content = []
+        if response.message.tool_calls:
+            for content in response.message.tool_calls:
+                if isinstance(content, ToolUseContent):
+                    tool = self.tools[content.function.name]
+                    try:
+                        args = json.loads(content.function.arguments)
+                        self.logger.info(f"Running tool: {tool.name} with args: {args}")
+                        tool_result = tool.run(**args)
+                    except json.JSONDecodeError:
+                        self.logger.error(
+                            f"Invalid JSON in tool arguments: {content.function.arguments}"
+                        )
+                        tool_result = f"Error: Invalid JSON in tool arguments: {content.function.arguments}"
+                    tool_result_content.append(
+                        {
+                            "tool_call_id": content.id,
+                            "name": content.function.name,
+                            "content": tool_result,
+                        }
+                    )
+
+            if tool_result_content:
+                messages.append(response.message)
+                for content in tool_result_content:
+                    messages.append(
+                        ToolUseMessage(
+                            role=Role.TOOL,
+                            tool_call_id=content["tool_call_id"],
+                            name=content["name"],
+                            content=content["content"],
+                        )
+                    )
+                return self._process_chat(messages, **params)
+
+        return response
+
     def _chat(
         self,
         user_input,
@@ -303,42 +345,7 @@ class GPTAgent(BaseAgent):
             params["tools"] = tools
             params["tool_choice"] = "auto"
 
-        response = self._client_chat(messages, **params)
-
-        tool_result_content = []
-        if response.message.tool_calls:
-            for content in response.message.tool_calls:
-                if isinstance(content, ToolUseContent):
-                    tool = self.tools[content.function.name]
-                    try:
-                        args = json.loads(content.function.arguments)
-                        self.logger.info(f"Running tool: {tool.name} with args: {args}")
-                        tool_result = tool.run(**args)
-                    except json.JSONDecodeError:
-                        self.logger.error(
-                            f"Invalid JSON in tool arguments: {content.function.arguments}"
-                        )
-                        tool_result = f"Error: Invalid JSON in tool arguments: {content.function.arguments}"
-                    tool_result_content.append(
-                        {
-                            "tool_call_id": content.id,
-                            "name": content.function.name,
-                            "content": tool_result,
-                        }
-                    )
-
-            if tool_result_content:
-                messages.append(response.message)
-                for content in tool_result_content:
-                    messages.append(
-                        ToolUseMessage(
-                            role=Role.TOOL,
-                            tool_call_id=content["tool_call_id"],
-                            name=content["name"],
-                            content=content["content"],
-                        )
-                    )
-                response = self._client_chat(messages, **params)
+        response = self._process_chat(messages, **params)
 
         response.input_message = (
             messages[1] if messages[0].role == Role.SYSTEM.value else messages[0]

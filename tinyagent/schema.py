@@ -4,6 +4,8 @@ from typing import Optional, Type
 
 from pydantic import BaseModel, ConfigDict, SerializeAsAny
 
+from tinyagent.utils import convert_image_to_base64_uri
+
 
 class BaseConfig(BaseModel):
     model_name: str
@@ -51,6 +53,17 @@ class TextContent(BaseContent):
     text: str
 
 
+class ImageSource(BaseModel):
+    # data:image/jpeg;base64,{base64_image}
+    # https://example.com/image.png
+    url: str
+
+
+class ImageContent(BaseContent):
+    type: str = "image_url"
+    image_url: ImageSource
+
+
 class Message(BaseModel):
     role: Role
     content: Optional[list[SerializeAsAny[BaseContent]]] = None
@@ -59,6 +72,13 @@ class Message(BaseModel):
     @staticmethod
     def from_text(role, text):
         return Message(role=role, content=[TextContent(text=text)])
+
+    @staticmethod
+    def from_image(role, image_url: str):
+        image_base64 = convert_image_to_base64_uri(image_url)
+        return Message(
+            role=role, content=[ImageContent(image_url=ImageSource(url=image_base64))]
+        )
 
     def get_text(self):
         if self.content:

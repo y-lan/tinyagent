@@ -93,7 +93,8 @@ class TestGPTAgent(unittest.TestCase):
             json_output=True,
             response_format=MathResponse,
         )
-        res = MathResponse.model_validate(agent.chat("solve 8x + 31 = 2"))
+        json_response = agent.chat("solve 8x + 31 = 2")
+        res = MathResponse.model_validate_json(json_response)
 
         assert "-3.625" in res.final_answer
 

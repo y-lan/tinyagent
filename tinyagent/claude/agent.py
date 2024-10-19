@@ -1,15 +1,14 @@
-import base64
-import imghdr
 import json
-import mimetypes
-import os
 from typing import Any, Union
-import urllib
 
 from tinyagent.base import BaseAgent
 from tinyagent.claude.client import AnthropicClient
 from tinyagent.tools import build_function_signature
-from tinyagent.utils import get_param, replace_magic_placeholders
+from tinyagent.utils import (
+    convert_image_to_base64_uri,
+    get_param,
+    replace_magic_placeholders,
+)
 from tinyagent.schema import (
     BaseConfig,
     BaseContent,
@@ -29,22 +28,11 @@ def _create_image_content(image_path):
     if image_path.startswith("data:image/jpeg;base64,"):
         return _create_image_block(image_path.split(",")[1])
 
-    parsed = urllib.parse.urlparse(image_path)
-
-    if parsed.scheme in ("http", "https"):
-        mime_type, _ = mimetypes.guess_type(image_path)
-        with urllib.request.urlopen(image_path) as response:
-            base64_image = base64.b64encode(response.read()).decode("utf-8")
-            return _create_image_block(base64_image, mime_type or "image/jpeg")
-
-    elif os.path.exists(image_path):
-        with open(image_path, "rb") as image_file:
-            image_type = imghdr.what(image_path)
-            base64_image = base64.b64encode(image_file.read()).decode("utf-8")
-
-            return _create_image_block(base64_image, f"image/{image_type}")
-
-    raise Exception(f"Invalid image path: {image_path}")
+    image_base64_url = convert_image_to_base64_uri(image_path)
+    mime_type = image_base64_url.split(";")[0].split(":")[1]
+    image_base64 = image_base64_url.split(",")[1]
+    block = _create_image_block(image_base64, mime_type)
+    return block
 
 
 def _assemble_chat_response(raw: dict):
