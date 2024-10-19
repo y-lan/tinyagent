@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 import logging
-from typing import Any, Optional, Union
+from typing import Any, List, Optional, Union
 
 from tinyagent.schema import (
     BaseConfig,
@@ -114,9 +114,12 @@ class BaseAgent(ABC):
         if kwargs:
             user_input = user_input.format(**kwargs)
 
+        messages = [Message.from_text(Role.USER, user_input)]
+        if image:
+            messages.append(Message.from_image(Role.USER, image))
+
         return self._chat(
-            user_input=user_input,
-            image=image,
+            messages=messages,
             return_complex=return_complex,
             temperature=temperature,
             max_tokens=max_tokens,
@@ -127,8 +130,7 @@ class BaseAgent(ABC):
     @abstractmethod
     def _chat(
         self,
-        user_input: str,
-        image: Optional[str] = None,
+        messages: List[Message],
         return_complex: bool = False,
         **kwargs,
     ) -> Union[str, ChatResponse]:

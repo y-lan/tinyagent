@@ -5,7 +5,7 @@ GPTAgent
 import base64
 import json
 import os
-from typing import Optional, Type
+from typing import List, Optional, Type
 import urllib
 
 from pydantic import BaseModel, ConfigDict
@@ -127,7 +127,7 @@ class GPTAgent(BaseAgent):
                 return Message.from_text(Role.SYSTEM, self.config.system_prompt)
         return None
 
-    def _assemble_request_messages(self, user_contents):
+    def _assemble_request_messages(self, messages: List[Message]):
         msgs = []
         system_msg = self._get_system_msg()
         if system_msg:
@@ -136,7 +136,8 @@ class GPTAgent(BaseAgent):
         if self.config.enable_history:
             msgs.extend(self.history)
 
-        msgs.append(Message(role=Role.USER, content=user_contents))
+        msgs.extend(messages)
+
         return msgs
 
     def _handle_stream(self, stream):
@@ -256,16 +257,18 @@ class GPTAgent(BaseAgent):
 
     def _chat(
         self,
-        user_input,
+        messages: List[Message],
+        user_input=None,
         image=None,
         return_complex=False,
         **kwargs,
     ):
+        """
         user_contents = [TextContent(text=user_input)]
         if image is not None:
             user_contents.append(_create_image_content(image))
-
-        messages = self._assemble_request_messages(user_contents)
+        """
+        messages = self._assemble_request_messages(messages)
 
         params = {
             "model": self.config.model_name,

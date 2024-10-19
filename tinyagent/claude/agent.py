@@ -1,8 +1,13 @@
 import json
-from typing import Any, Union
+from typing import Any, List, Union
 
 from tinyagent.base import BaseAgent
 from tinyagent.claude.client import AnthropicClient
+from tinyagent.claude.schema import (
+    ClaudeImageContent,
+    ToolResultContent,
+    ToolUseContent,
+)
 from tinyagent.tools import build_function_signature
 from tinyagent.utils import (
     convert_image_to_base64_uri,
@@ -11,8 +16,8 @@ from tinyagent.utils import (
 )
 from tinyagent.schema import (
     BaseConfig,
-    BaseContent,
     ChatResponse,
+    ImageContent,
     Message,
     Role,
     TextContent,
@@ -20,19 +25,13 @@ from tinyagent.schema import (
 )
 
 
-def _create_image_block(data: str, media_type: str = "image/jpeg"):
-    return ImageContent(source=dict(type="base64", media_type=media_type, data=data))
-
-
-def _create_image_content(image_path):
-    if image_path.startswith("data:image/jpeg;base64,"):
-        return _create_image_block(image_path.split(",")[1])
-
-    image_base64_url = convert_image_to_base64_uri(image_path)
-    mime_type = image_base64_url.split(";")[0].split(":")[1]
-    image_base64 = image_base64_url.split(",")[1]
-    block = _create_image_block(image_base64, mime_type)
-    return block
+def _convert_message_to_claude_format(message: Message):
+    for i in range(len(message.content)):
+        if isinstance(message.content[i], ImageContent):
+            message.content[i] = ClaudeImageContent.from_image_content(
+                message.content[i]
+            )
+    return message
 
 
 def _assemble_chat_response(raw: dict):
@@ -61,30 +60,6 @@ def _parse_claude_content(content):
         raise Exception(f"Unsupported content type: {content['type']}")
 
 
-class ImageContentSource(BaseContent):
-    type: str
-    media_type: str
-    data: str
-
-
-class ImageContent(BaseContent):
-    type: str = "image"
-    source: ImageContentSource
-
-
-class ToolUseContent(BaseContent):
-    type: str = "tool_use"
-    id: str
-    name: str
-    input: dict
-
-
-class ToolResultContent(BaseContent):
-    type: str = "tool_result"
-    tool_use_id: str
-    content: str
-
-
 class AgentConfig(BaseConfig):
     model_name: str = "claude-3-haiku-20240307"
 
@@ -93,6 +68,8 @@ class AgentConfig(BaseConfig):
 
 
 class ClaudeAgent(BaseAgent):
+    client: AnthropicClient
+
     def __init__(
         self,
         config: AgentConfig = None,
@@ -114,13 +91,11 @@ class ClaudeAgent(BaseAgent):
         else:
             return self.config.system_prompt
 
-    def _assemble_request_messages(self, user_contents):
+    def _assemble_request_messages(self, messages: List[Message]):
         msgs = []
         if self.config.enable_history:
             msgs.extend(self.history)
-
-        msgs.append(Message(role=Role.USER, content=user_contents))
-
+        msgs.extend(messages)
         return msgs
 
     def _handle_stream(self, stream, prefill_response=None):
@@ -205,17 +180,14 @@ class ClaudeAgent(BaseAgent):
 
     def _chat(
         self,
-        user_input,
+        messages: List[Message],
+        user_input=None,
         image=None,
         return_complex=False,
         prefill_response=None,
         **kwargs,
     ) -> Union[str, ChatResponse]:
-        user_contents = [TextContent(text=user_input)]
-        if image is not None:
-            user_contents.append(_create_image_content(image))
-
-        messages = self._assemble_request_messages(user_contents)
+        messages = self._assemble_request_messages(messages)
 
         params = dict(
             model=self.config.model_name,
@@ -248,6 +220,7 @@ class ClaudeAgent(BaseAgent):
                 )
             )
 
+        messages = [_convert_message_to_claude_format(message) for message in messages]
         response = self._client_chat(
             messages, prefill_response=prefill_response, **params
         )
