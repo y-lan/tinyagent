@@ -12,6 +12,7 @@ from tinyagent.schema import (
     TokenUsage,
 )
 from tinyagent.common import SimpleEventManager
+from tinyagent.utils import replace_magic_placeholders
 
 
 class LLMEventManager(SimpleEventManager):
@@ -102,6 +103,14 @@ class BaseAgent(ABC):
             )
             tool_result = f"Error: {e}"
         return tool_result
+
+    def _get_system_msg(self) -> str | None:
+        if self.config.system_prompt:
+            if self.config.enable_magic_placeholders:
+                return replace_magic_placeholders(self.config.system_prompt)
+            else:
+                return self.config.system_prompt
+        return None
 
     def _add_history(self, role, content):
         if not self.config.enable_history:

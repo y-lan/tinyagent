@@ -117,21 +117,11 @@ class GPTAgent(BaseAgent):
 
         self.client = OpenAIClient(api_key=api_key)
 
-    def _get_system_msg(self):
-        if self.config.system_prompt:
-            if self.config.enable_magic_placeholders:
-                return Message.from_text(
-                    Role.SYSTEM, replace_magic_placeholders(self.config.system_prompt)
-                )
-            else:
-                return Message.from_text(Role.SYSTEM, self.config.system_prompt)
-        return None
-
     def _assemble_request_messages(self, messages: List[Message]):
         msgs = []
         system_msg = self._get_system_msg()
         if system_msg:
-            msgs.append(system_msg)
+            msgs.append(Message.from_text(Role.SYSTEM, system_msg))
 
         if self.config.enable_history:
             msgs.extend(self.history)

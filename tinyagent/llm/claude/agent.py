@@ -84,12 +84,6 @@ class ClaudeAgent(BaseAgent):
 
         self.client = AnthropicClient(api_key=api_key)
 
-    def _get_system_msg(self):
-        if self.config.enable_magic_placeholders:
-            return replace_magic_placeholders(self.config.system_prompt)
-        else:
-            return self.config.system_prompt
-
     def _assemble_request_messages(self, messages: List[Message]):
         msgs = []
         if self.config.enable_history:
@@ -205,9 +199,11 @@ class ClaudeAgent(BaseAgent):
             model=self.config.model_name,
             max_tokens=get_param(kwargs, "max_tokens", self.config.max_tokens),
             temperature=get_param(kwargs, "temperature", self.config.temperature),
-            system=self._get_system_msg(),
             stream=get_param(kwargs, "stream", self.config.stream),
         )
+        system_msg = self._get_system_msg()
+        if system_msg:
+            params["system"] = system_msg
 
         if self.config.use_tools and self.tools:
             tools = []
