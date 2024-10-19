@@ -161,7 +161,7 @@ class BaseAgent(ABC):
         if image:
             messages.append(Message.from_image(Role.USER, image))
 
-        return self._chat(
+        response = self._chat(
             messages=messages,
             return_complex=return_complex,
             temperature=temperature,
@@ -170,11 +170,14 @@ class BaseAgent(ABC):
             **kwargs,
         )
 
+        self.event_manager.publish_finish_chat(response)
+
+        return response if return_complex else response.message.content[0].text
+
     @abstractmethod
     def _chat(
         self,
         messages: List[Message],
-        return_complex: bool = False,
         **kwargs,
     ) -> Union[str, ChatResponse]:
         pass

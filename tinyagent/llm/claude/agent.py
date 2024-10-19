@@ -11,7 +11,6 @@ from tinyagent.llm.claude.schema import (
 from tinyagent.tools.tool import build_function_signature
 from tinyagent.utils import (
     get_param,
-    replace_magic_placeholders,
 )
 from tinyagent.schema import (
     BaseConfig,
@@ -152,7 +151,7 @@ class ClaudeAgent(BaseAgent):
 
         return message
 
-    def _client_chat(self, messages, prefill_response=None, **params):
+    def _process_chat(self, messages, prefill_response=None, **params):
         res = self.client.chat(messages, **params)
 
         message = None
@@ -178,14 +177,13 @@ class ClaudeAgent(BaseAgent):
         if tool_result_content:
             messages.append(response.message)
             messages.append(Message(role=Role.USER, content=tool_result_content))
-            return self._client_chat(messages, **params)
+            return self._process_chat(messages, **params)
 
         return response
 
     def _chat(
         self,
         messages: List[Message],
-        return_complex=False,
         prefill_response=None,
         **kwargs,
     ) -> Union[str, ChatResponse]:
@@ -225,11 +223,9 @@ class ClaudeAgent(BaseAgent):
             )
 
         messages = [_convert_message_to_claude_format(message) for message in messages]
-        response = self._client_chat(
+        response = self._process_chat(
             messages, prefill_response=prefill_response, **params
         )
 
         response.input_message = messages[0]
-        self.event_manager.publish_finish_chat(response)
-
-        return response if return_complex else response.message.content[0].text
+        return response

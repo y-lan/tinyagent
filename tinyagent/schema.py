@@ -64,17 +64,38 @@ class ImageContent(BaseContent):
     image_url: ImageSource
 
 
+class FunctionCall(BaseModel):
+    """
+    Represents a function call in the tool use message.
+    arguments is a JSON string representing the dictionary of arguments.
+    """
+
+    name: str
+    arguments: str
+
+
+class ToolUseContent(BaseContent):
+    """
+    Represents a tool use content block.
+    """
+
+    index: int
+    type: str = "function"
+    id: str
+    function: FunctionCall
+
+
 class Message(BaseModel):
     role: Role
     content: Optional[list[SerializeAsAny[BaseContent]]] = None
     tool_calls: Optional[list] = None
 
     @staticmethod
-    def from_text(role, text):
+    def from_text(role: Role, text: str):
         return Message(role=role, content=[TextContent(text=text)])
 
     @staticmethod
-    def from_image(role, image_url: str):
+    def from_image(role: Role, image_url: str):
         image_base64 = convert_image_to_base64_uri(image_url)
         return Message(
             role=role, content=[ImageContent(image_url=ImageSource(url=image_base64))]
@@ -88,6 +109,20 @@ class Message(BaseModel):
         return ""
 
     model_config = ConfigDict(use_enum_values=True, arbitrary_types_allowed=True)
+
+
+class ToolUseMessage(Message):
+    """
+    Represents a tool use message.
+    tool_call_id is the ID of the tool call.
+    name is the name of the tool.
+    content is the result of the tool.
+    """
+
+    model_config = ConfigDict(use_enum_values=True)
+    tool_call_id: str
+    name: str
+    content: str
 
 
 class TokenUsage(BaseModel):

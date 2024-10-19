@@ -2,17 +2,13 @@
 GPTAgent
 """
 
-import base64
 import json
-import os
 from typing import List, Optional, Type
-import urllib
 
 from pydantic import BaseModel, ConfigDict
 
 from tinyagent.base import BaseAgent
 from tinyagent.llm.gpt.client import OpenAIChatResponse, OpenAIClient
-from tinyagent.llm.gpt.schema import ImageContent, ToolUseContent, ToolUseMessage
 from tinyagent.schema import (
     BaseConfig,
     ChatResponse,
@@ -21,28 +17,11 @@ from tinyagent.schema import (
     TextContent,
     TokenUsage,
     Tool,
+    ToolUseContent,
+    ToolUseMessage,
 )
 from tinyagent.tools.tool import build_function_signature
-from tinyagent.utils import get_param, replace_magic_placeholders
-
-
-def _create_image_content(image_path):
-    parsed = urllib.parse.urlparse(image_path)
-
-    if parsed.scheme in ("http", "https"):
-        return ImageContent(image_url={"url": image_path})
-
-    if os.path.exists(image_path):
-        with open(image_path, "rb") as image_file:
-            base64_image = base64.b64encode(image_file.read()).decode("utf-8")
-
-            return ImageContent(
-                image_url={"url": f"data:image/jpeg;base64,{base64_image}"}
-            )
-    elif image_path.startswith("data:image/jpeg;base64,"):
-        return ImageContent(image_url={"url": image_path})
-    else:
-        raise ValueError(f"Invalid image path: {image_path}")
+from tinyagent.utils import get_param
 
 
 def _parse_openai_message(msg):
@@ -233,16 +212,8 @@ class GPTAgent(BaseAgent):
     def _chat(
         self,
         messages: List[Message],
-        user_input=None,
-        image=None,
-        return_complex=False,
         **kwargs,
     ):
-        """
-        user_contents = [TextContent(text=user_input)]
-        if image is not None:
-            user_contents.append(_create_image_content(image))
-        """
         messages = self._assemble_request_messages(messages)
 
         params = {
@@ -283,6 +254,5 @@ class GPTAgent(BaseAgent):
         response.input_message = (
             messages[1] if messages[0].role == Role.SYSTEM.value else messages[0]
         )
-        self.event_manager.publish_finish_chat(response)
 
-        return response if return_complex else response.message.content[0].text
+        return response
