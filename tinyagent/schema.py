@@ -4,7 +4,7 @@ from typing import Optional, Type
 
 from pydantic import BaseModel, ConfigDict, SerializeAsAny
 
-from tinyagent.utils import convert_image_to_base64_uri
+from tinyagent.utils import convert_audio_to_base64, convert_image_to_base64_uri
 
 
 class BaseConfig(BaseModel):
@@ -64,6 +64,16 @@ class ImageContent(BaseContent):
     image_url: ImageSource
 
 
+class AudioSource(BaseModel):
+    data: str
+    format: str = "audio/mp3"
+
+
+class AudioContent(BaseContent):
+    type: str = "input_audio"
+    input_audio: AudioSource
+
+
 class FunctionCall(BaseModel):
     """
     Represents a function call in the tool use message.
@@ -99,6 +109,17 @@ class Message(BaseModel):
         image_base64 = convert_image_to_base64_uri(image_url)
         return Message(
             role=role, content=[ImageContent(image_url=ImageSource(url=image_base64))]
+        )
+
+    @staticmethod
+    def from_audio(role: Role, audio_path: str, convert_to_base64: bool = False):
+        if convert_to_base64:
+            audio_base64 = convert_audio_to_base64(audio_path)
+        else:
+            audio_base64 = audio_path
+        return Message(
+            role=role,
+            content=[AudioContent(input_audio=AudioSource(data=audio_base64))],
         )
 
     def get_text(self):

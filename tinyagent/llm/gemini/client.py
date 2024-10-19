@@ -5,6 +5,8 @@ from pydantic import BaseModel
 import requests
 from tinyagent.llm.gemini.schema import (
     GeminiContent,
+    GeminiFileData,
+    GeminiFileDataPart,
     GeminiInlineData,
     GeminiInlinePart,
     GeminiResponse,
@@ -14,6 +16,7 @@ from tinyagent.llm.gemini.schema import (
     GeminiToolMode,
 )
 from tinyagent.schema import (
+    AudioContent,
     BaseContent,
     ImageContent,
     Message,
@@ -25,6 +28,8 @@ from tinyagent.schema import (
 )
 from tinyagent.tools.tool import build_function_signature
 from tinyagent.utils import convert_image_to_base64_uri
+import mimetypes
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +43,13 @@ def _serialize_content(content: BaseContent):
         base64_data = base64_uri.split(",")[1]
         return GeminiInlinePart(
             inlineData=GeminiInlineData(mimeType=mime_type, data=base64_data)
+        )
+    elif isinstance(content, AudioContent):
+        return GeminiFileDataPart(
+            file_data=GeminiFileData(
+                file_uri=content.input_audio.data,
+                mime_type=content.input_audio.format,
+            )
         )
     elif isinstance(content, ToolUseContent):
         return GeminiToolCallPart.from_tool_use_content(content)
@@ -57,7 +69,9 @@ def _convert_to_gemini_message(message: Message):
 
 class GeminiClient(BaseModel):
     api_key: str
-    base_url: str = "https://generativelanguage.googleapis.com/v1beta/models"
+    temperature: float = 0.1
+    max_output_tokens: int = 1024
+    base_url: str = "https://generativelanguage.googleapis.com"
 
     safetySettings: list[dict] = [
         {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
@@ -79,10 +93,31 @@ class GeminiClient(BaseModel):
         },
     ]
 
-    def __init__(self, api_key: str = None, **data):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_output_tokens: Optional[int] = None,
+        **data,
+    ):
         if not api_key:
             api_key = os.getenv("GEMINI_API_KEY")
-        super().__init__(api_key=api_key, **data)
+
+        temperature = (
+            temperature if temperature is not None else self.__class__.temperature
+        )
+        max_output_tokens = (
+            max_output_tokens
+            if max_output_tokens is not None
+            else self.__class__.max_output_tokens
+        )
+
+        super().__init__(
+            api_key=api_key,
+            temperature=temperature,
+            max_output_tokens=max_output_tokens,
+            **data,
+        )
 
     def _build_tool_signature(self, tool: Tool):
         signature = build_function_signature(tool)["function"]
@@ -102,23 +137,58 @@ class GeminiClient(BaseModel):
                     data = GeminiResponse(**data)
                     yield data
 
+    def upload_file(self, file_path: str) -> str:
+        file_name = os.path.basename(file_path)
+        file_size = os.path.getsize(file_path)
+        mime_type, _ = mimetypes.guess_type(file_path)
+
+        # Initial resumable request
+        headers = {
+            "X-Goog-Upload-Protocol": "resumable",
+            "X-Goog-Upload-Command": "start",
+            "X-Goog-Upload-Header-Content-Length": str(file_size),
+            "X-Goog-Upload-Header-Content-Type": mime_type,
+            "Content-Type": "application/json",
+        }
+        data = json.dumps({"file": {"display_name": file_name}})
+        response = requests.post(
+            f"{self.base_url}/upload/v1beta/files?key={self.api_key}",
+            headers=headers,
+            data=data,
+        )
+        response.raise_for_status()
+        upload_url = response.headers.get("X-Goog-Upload-URL")
+
+        # Upload the actual bytes
+        with open(file_path, "rb") as file:
+            headers = {
+                "Content-Length": str(file_size),
+                "X-Goog-Upload-Offset": "0",
+                "X-Goog-Upload-Command": "upload, finalize",
+            }
+            response = requests.post(upload_url, headers=headers, data=file)
+        response.raise_for_status()
+
+        file_info = response.json()
+        return file_info
+
     def chat(
         self,
         messages: list[Message] = [],
-        system_instruction: str | None = None,
+        system_instruction: Optional[str] = None,
         stream: bool = False,
         model: str = "gemini-1.5-flash-latest",
         tool_mode: GeminiToolMode = GeminiToolMode.AUTO,
-        tools: list[Tool] = None,
+        tools: Optional[list[Tool]] = None,
         json_output: bool = False,
-        temperature: float = 0.1,
-        max_output_tokens: int = 1024,
+        temperature: Optional[float] = None,
+        max_output_tokens: Optional[int] = None,
         **kwargs,
     ) -> dict:
         if stream:
-            url = f"{self.base_url}/{model}:streamGenerateContent?alt=sse&key={self.api_key}"
+            url = f"{self.base_url}/v1beta/models/{model}:streamGenerateContent?alt=sse&key={self.api_key}"
         else:
-            url = f"{self.base_url}/{model}:generateContent?key={self.api_key}"
+            url = f"{self.base_url}/v1beta/models/{model}:generateContent?key={self.api_key}"
 
         # Convert messages to the format expected by the Gemini API
         contents = [
@@ -130,8 +200,8 @@ class GeminiClient(BaseModel):
             "contents": contents,
             "safetySettings": self.safetySettings,
             "generationConfig": {
-                "temperature": temperature,
-                "maxOutputTokens": max_output_tokens,
+                "temperature": temperature or self.temperature,
+                "maxOutputTokens": max_output_tokens or self.max_output_tokens,
             },
             **kwargs,  # Include any additional parameters passed to the method
         }

@@ -6,6 +6,8 @@ import uuid
 from pydantic import BaseModel, ConfigDict, Field
 
 from tinyagent.schema import (
+    AudioContent,
+    AudioSource,
     BaseContent,
     FunctionCall,
     ImageContent,
@@ -87,6 +89,14 @@ class GeminiFileDataPart(GeminiContentPart):
 
     def update(self, another: "GeminiFileDataPart"):
         raise NotImplementedError
+
+    def to_standard_content(self) -> AudioContent:
+        return AudioContent(
+            input_audio=AudioSource(
+                data=self.file_data.file_uri,
+                format=self.file_data.mime_type,
+            )
+        )
 
 
 class GeminiInlinePart(GeminiContentPart):
