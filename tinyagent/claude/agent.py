@@ -181,8 +181,6 @@ class ClaudeAgent(BaseAgent):
     def _chat(
         self,
         messages: List[Message],
-        user_input=None,
-        image=None,
         return_complex=False,
         prefill_response=None,
         **kwargs,
