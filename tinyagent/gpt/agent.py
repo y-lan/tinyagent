@@ -272,7 +272,9 @@ class GPTAgent(BaseAgent):
 
         params = {
             "model": self.config.model_name,
-            "max_tokens": get_param(kwargs, "max_tokens", self.config.max_tokens),
+            "max_completion_tokens": get_param(
+                kwargs, ["max_tokens", "max_completion_tokens"], self.config.max_tokens
+            ),
             "temperature": get_param(kwargs, "temperature", self.config.temperature),
             "frequency_penalty": self.config.frequency_penalty,
             "top_p": self.config.top_p,
